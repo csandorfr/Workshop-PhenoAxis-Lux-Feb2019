@@ -45,7 +45,7 @@ We used the baseline (t=0) of clinical assessments, described in detail in the S
 
 We used the baseline following clinical assessement
 
-```{r clinical assement ,echo=FALSE}
+```{r clinical assement ,echo=TRUE}
 index_phen<-def_phen$Variable.Name %in% colnames(Y)
 df<-def_phen[index_phen,]
 DT::datatable(df, rownames = TRUE, caption = "Clinical Assessements", escape = FALSE, extensions = 'Buttons', options = list(dom = 'ftipr'))
@@ -71,7 +71,7 @@ We then ran GEMMA with the following command:
 
 We have two matrices of dimensions
 
-```{r matrices dimension ,echo=FALSE}
+```{r matrices dimension ,echo=TRUE}
 print ("Dimension of the phenotypic matrix (nxp)")
 dim(Y)
 print ("Dimension of the Kinship matrix (nxn)")
@@ -83,14 +83,14 @@ The options quantnorm, scale and trim are important because they concern how PHE
 
 Quantile normalizes phenotypes prior to imputation. While trim indicate to remove the outlier
 
-```{r run phenix ,eval=TRUE,warning=FALSE,message=FALSE,error=FALSE}
+```{r run phenix ,eval=TRUE,warning=FALSE,message=FALSE,error=FALSE,echo=TRUE}
 out_phenix<-phenix (Y, K, quantnorm=TRUE, scale=TRUE, trim=FALSE)
 ```
 
 The latent variables that correspond to phenotypic axes are saved in phenix_object$S. The dimension of this matrix is the same than phenotypic matrix.
 
 
-```{r dimension of matrix of latent variables ,echo=FALSE}
+```{r dimension of matrix of latent variables ,echo=TRUE}
 print("Dimension of latent variables matrix (phenotypic axes)")
 S<-out_phenix$S
 print(dim(S))
@@ -102,7 +102,7 @@ print(dim(S))
 
 All axes don't explain the same proportion of the phenotypic variation. 
 
-```{r proportion of phenotypic variation ,echo=FALSE}
+```{r proportion of phenotypic variation ,echo=TRUE}
 sd_beta<-apply(out$beta[,c(1:33)], 1, sd)
 var_expl<-cumsum((sd_beta)^2) / sum(sd_beta^2) 
 barplot(var_expl[1:length(sd_beta)],names.arg=paste0("V",c(1:length(sd_beta))),las=2,cex.names = 0.8)
@@ -115,7 +115,7 @@ print(var_expl[3])
 We can remove randomly five clinical features
 We observed a strong correlation (r > 0.8) between each of the two first phenotypic axes built with as few as 50% of the clinical variables and their respective original phenotypic axes, suggesting that these two axes are extremely robust in terms of the numbers of clinical variables considered
 
-```{r remove randomly some clinical assessements ,echo=FALSE}
+```{r remove randomly some clinical assessements ,echo=TRUE}
 n_miss<-5
 n_phen<-dim(Y)[2]
 set.seed(123458)
@@ -145,7 +145,7 @@ To interpret the clinical relevance of each phenotypic axis, we examined the cor
 To interpret these correlations it is important to know for each individuals clinical feature if a high score is associated with worsening symptoms or not.
 For example a high score for UPDRS III correspond to worsening motors symptoms, while a high score for MoCA test reflect a better cognitive function for the patient. In consequence the interpretation of positive or negative correlation will depend on the clinical feature.
 
-```{r correlation PPMI,echo=FALSE}
+```{r correlation PPMI,echo=TRUE}
 
 n_clinical<-length(colnames(Y))
 n_axes<-2
@@ -166,7 +166,7 @@ colnames(df_mm_info)[1]<-"Clinical_Obs"
 DT::datatable(df_mm_info, rownames = TRUE, caption = "Correlation Phenotypic Axes with Clinical Features", escape = FALSE, extensions = 'Buttons', options = list(dom = 'ftipr'))
 ```
 
-```{r correlation plot PPMI,echo=FALSE}
+```{r correlation plot PPMI,echo=TRUE}
 library("reshape2")
 library(ggplot2)
 
@@ -191,14 +191,14 @@ They measured for 120 individuals:
 * Alpha-synuclein
 
 
-```{r four markers,echo=FALSE}
+```{r four markers,echo=TRUE}
 list_test<-unique(bio_marker_f$TESTNAME)
 print (list_test)
 ```
 
 We can examine the relation between these markers and phenotypic axes
 
-```{r relation axes with csf markers,echo=FALSE}
+```{r relation axes with csf markers,echo=TRUE}
 df_axis<-data.frame(S[,c(1,2)])
 df_axis$PATNO<-row.names(Y)
 df_axis_bio_marker<-merge(df_axis,bio_marker_f[,c(1,6,7)],by=c("PATNO"))
@@ -212,7 +212,7 @@ ggplot(df_axis_bio_marker_s, aes(x=value, y=log( as.numeric(as.character(df_axis
 We find a significant relation between Aβ1-42 and phenotypic axes 
 CSF Aβ1-42 was showed to predicts cognitive impairment in de novo PD patients. Phenotypic axis will enable to analysis patients from different cohorts with different clinical assessments.
 
-```{r correlation between V1 and AB,echo=FALSE}
+```{r correlation between V1 and AB,echo=TRUE}
 df_axis_bio_marker$TESTVALUE2<-as.numeric(as.character(df_axis_bio_marker$TESTVALUE))
 x<-list_test[1]
 cor.test(df_axis_bio_marker$V1[df_axis_bio_marker$TESTNAME==x],log(df_axis_bio_marker$TESTVALUE2[df_axis_bio_marker$TESTNAME==x],10))
