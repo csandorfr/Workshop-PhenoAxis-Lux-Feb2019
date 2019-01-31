@@ -8,26 +8,24 @@ Download or clone the repository so that you have everything you need to partici
 
 This repository contains data files and RMarkdown documents that can be used for the analysis of the datasets. The clinical observations used here come from the PPMI cohort and the original data can be downloaded here: 
 
-**Data files:** 
+**Data file:** 
 
-* `ppmi_baseline.RData` - PPMI clinical observations (baseline)
-* `ppmi_longitudinal.RData` - PPMI clinical observations (multiple visits)
+* `PPMI.RData` - PPMI clinical observations (baseline)
 
-**Rmd files:**
+**Rmd file:**
 
-There are two versions of each RMarkdown document, a "skeleton" version without the R code and a "complete" version with full R code. The idea is to work from the "skeleton" version and consult the "complete" version when you get stuck.
+There is RMarkdown document including a "complete" version with full R code. 
 
-* X's data analysis: `X_report_skeleton.Rmd`, `X_report_complete.Rmd`
+* Data analysis: `Workshop_Luxembourg_Phenotypic_Axes.Rmd`
 
 
-**HTML files:**
+**HTML file:**
 
 HTML reports produced by running the above ("complete") Rmd files in case you want to check the expected code output and plots.
 
-* `X_surgery_report_complete.html`
+* `Workshop_Luxembourg_Phenotypic_Axes.html`
 
-The above should give you everything you need to work along with the analyses in the workshop. The Rmd skeleton files should also be a good place to keep your own notes on the workshop and analyses.
-
+The above should give you everything you need to work along with the analyses in the workshop. 
 
 ## PHENIX
 
