@@ -1,0 +1,220 @@
+---
+title: "Workshop Luxembourg Phenotypic Axes"
+author: "Cynthia Sandor"
+date: 'Last update: `r date()`'
+output:
+  html_document:
+    fig_height: 5
+    fig_width: 5
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+      toc_depth: 5
+  pdf_document:
+    toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+library(phenix)
+load('PPMI.Rdata')
+```
+
+## Using PHENIX
+
+### Introduction
+
+PHENIX (Dahl et al., 2016) use a Bayesian multiple-phenotype mixed model (MPMM), where the correlations between clinical phenotypes (Y) are decomposed into a genetic and a residual component with the following model: Y=U+e, where U represents the aggregate genetic contribution (whole genotype) to phenotypic variance and e is idiosyncratic noise.
+
+As the estimation of maximum likelihood covariance estimates can become computationally expensive with increasing number of phenotypes, PHENIX uses a Bayesian low-rank matrix factorization model for the genetic term U such as: U = Sβ, in which β is can be used to estimate the genetic covariance matrix between phenotypes and S represents a matrix of latent components that each follow ~N (0,G) where G is the Estimate of Relatedness Matrix from genotypes.
+
+The resulting latent traits (S) are used as phenotypic axes, each representing the severity of a number of non-independent clinical phenotypes.
+
+To run PHENIX, we need: (1) Phenotypic matrix (P) (2) Kinship Matrix calculted from genotype from individual.
+ 
+### Phenotypic matrix
+
+The PPMI cohort (http://www.ppmi-info.org) was already described in detail (including PPMI protocol of recruitment and informed consent) by Marrek et al. (Parkinson Progression Marker, 2011).
+
+We downloaded data from the PPMI database on September 2017 in compliance with the PPMI Data Use Agreement. We considered 472 newly-diagnosed typical Parkinson’s disease subjects: subjects with a diagnosis of Parkinson’s disease for two years or less and who are not taking Parkinson’s disease medications.
+
+We used the baseline (t=0) of clinical assessments, described in detail in the Supplementary Table 2. We excluded any individual with > 5% of missing data (441 individuals included). 
+
+We used the baseline following clinical assessement
+
+```{r clinical assement ,echo=FALSE}
+index_phen<-def_phen$Variable.Name %in% colnames(Y)
+df<-def_phen[index_phen,]
+DT::datatable(df, rownames = TRUE, caption = "Clinical Assessements", escape = FALSE, extensions = 'Buttons', options = list(dom = 'ftipr'))
+```
+
+### Kindship matrix
+
+The kinship matrix G that is used by PHENIX to identify who’s related to each other, was created by using the GEMMA software (version 0.95) (Zhou and Stephens, 2012; Zhou et al., 2013; Zhou and Stephens, 2014) from genotype file under plink binary format. We pruned out SNPs in LD by using the following plink commands:
+
+```
+./plink - - bfile *plink binary files* - - indep-pairwise 50 5 0.2 - - out *output filename 1*
+./plink - - bfile *plink binary files* - - exclude *output filename 1* - - make-bed - - out *output filename 2*
+```
+
+We then ran GEMMA with the following command:
+
+```
+./gemma -bfile *plink binary files of Parkinson’s disease cases with pruned SNPs* -gk 2 -o *output filename*
+```
+
+
+### Running PHENIX
+
+We have two matrices of dimensions
+
+```{r matrices dimension ,echo=FALSE}
+print ("Dimension of the phenotypic matrix (nxp)")
+dim(Y)
+print ("Dimension of the Kinship matrix (nxn)")
+dim(K)
+```
+
+Running PHENIX
+The options quantnorm, scale and trim are important because they concern how PHENIX treats the data before generating the components:
+
+Quantile normalizes phenotypes prior to imputation. While trim indicate to remove the outlier
+
+```{r run phenix ,eval=TRUE,warning=FALSE,message=FALSE,error=FALSE}
+out_phenix<-phenix (Y, K, quantnorm=TRUE, scale=TRUE, trim=FALSE)
+```
+
+The latent variables that correspond to phenotypic axes are saved in phenix_object$S. The dimension of this matrix is the same than phenotypic matrix.
+
+
+```{r dimension of matrix of latent variables ,echo=FALSE}
+print("Dimension of latent variables matrix (phenotypic axes)")
+S<-out_phenix$S
+print(dim(S))
+```
+
+## Phenotypic axis proprieties
+
+### Fraction of the clinical variation
+
+All axes don't explain the same proportion of the phenotypic variation. 
+
+```{r proportion of phenotypic variation ,echo=FALSE}
+sd_beta<-apply(out$beta[,c(1:33)], 1, sd)
+var_expl<-cumsum((sd_beta)^2) / sum(sd_beta^2) 
+barplot(var_expl[1:length(sd_beta)],names.arg=paste0("V",c(1:length(sd_beta))),las=2,cex.names = 0.8)
+print ("3 first axes explain")
+print(var_expl[3])
+```
+
+### First phenotypic axes are robust in term of clinical variables considered
+
+We can remove randomly five clinical features
+We observed a strong correlation (r > 0.8) between each of the two first phenotypic axes built with as few as 50% of the clinical variables and their respective original phenotypic axes, suggesting that these two axes are extremely robust in terms of the numbers of clinical variables considered
+
+```{r remove randomly some clinical assessements ,echo=FALSE}
+n_miss<-5
+n_phen<-dim(Y)[2]
+set.seed(123458)
+list_random_phen<-sample(c(1:n_phen),5)
+print("We remove the following clinical features")
+print(colnames(Y)[list_random_phen])
+Y_miss<-Y[,-list_random_phen]
+print("New phenotypic matrix has as dimension")
+dim(Y_miss)
+```
+
+
+```{r run phenix missing phenotypes,eval=TRUE,warning=FALSE,message=FALSE,error=FALSE}
+print("Running PHENIX with this new matrix")
+out_phenix_miss<-phenix (Y_miss, K, seed=8473, quantnorm=TRUE, scale=TRUE, trim=FALSE)
+```
+
+```{r examine correlation with two first axis,echo=FALSE}
+plot(out_phenix$S[,1],out_phenix_miss$S[,1],xlab="Original Axis 1",ylab="Axis 1 build with missing phenotype")
+plot(out_phenix$S[,2],out_phenix_miss$S[,2],xlab="Original Axis 2",ylab="Axis 2 build with missing phenotype")
+```
+
+
+### Each phenotypic axis represents a distinct set of clinical features
+
+To interpret the clinical relevance of each phenotypic axis, we examined the correlation between individual clinical features and the phenotypic axes. 
+To interpret these correlations it is important to know for each individuals clinical feature if a high score is associated with worsening symptoms or not.
+For example a high score for UPDRS III correspond to worsening motors symptoms, while a high score for MoCA test reflect a better cognitive function for the patient. In consequence the interpretation of positive or negative correlation will depend on the clinical feature.
+
+```{r correlation PPMI,echo=FALSE}
+
+n_clinical<-length(colnames(Y))
+n_axes<-2
+list_axes<-c(1,2)
+mm <- matrix(NA,n_clinical,n_axes)
+for (i in 1:n_axes) {
+  for (j in 1:n_clinical) {
+    t<-cor.test(Y[,j],out_phenix[["S"]][,i])
+    mm[j,i]<-as.numeric(round(t$estimate,3))
+  }
+}
+df_mm<-as.data.frame(mm)
+df_mm$Variable.Name<-colnames(Y)
+df_mm_info<-merge(df_mm,def_phen,by=c("Variable.Name"))
+
+df_mm_info<-df_mm_info[,c(1,4,2,3)]
+colnames(df_mm_info)[1]<-"Clinical_Obs"
+DT::datatable(df_mm_info, rownames = TRUE, caption = "Correlation Phenotypic Axes with Clinical Features", escape = FALSE, extensions = 'Buttons', options = list(dom = 'ftipr'))
+```
+
+```{r correlation plot PPMI,echo=FALSE}
+library("reshape2")
+library(ggplot2)
+
+df_mm_info_s<-melt(df_mm_info,id=c("Clinical_Obs","Category"))
+colnames(df_mm_info_s)[3]<-"Axis"
+df_mm_info_s$Clinical_Obs<- factor(df_mm_info_s$Clinical_Obs, levels=unique(df_mm_info_s$Clinical_Obs[order(df_mm_info_s$Category)]))
+ggplot(df_mm_info_s, aes(x=Clinical_Obs, y=value,fill=Category))+facet_grid(~Axis)+
+ geom_bar(stat='identity',position=position_dodge()) + geom_bar(stat='identity',position=position_dodge()) +  theme(axis.text.x = element_text(angle = 90, hjust = 1))+coord_flip()
+
+```
+
+
+
+## Applications
+
+Phenotypic axes are quantive measure of the clinical variation and can be use to explore the genetic underlying the clinical variation or identify new biomarkers such as Cerebrospinal fluid.
+They measured for 120 individuals:
+
+* Total tau
+* Phosphorylated tau
+* Amyloid beta peptide 1-42 (Aβ1-42)
+* Alpha-synuclein
+
+
+```{r four markers,echo=FALSE}
+list_test<-unique(bio_marker_f$TESTNAME)
+print (list_test)
+```
+
+We can examine the relation between these markers and phenotypic axes
+
+```{r relation axes with csf markers,echo=FALSE}
+df_axis<-data.frame(S[,c(1,2)])
+df_axis$PATNO<-row.names(Y)
+df_axis_bio_marker<-merge(df_axis,bio_marker_f[,c(1,6,7)],by=c("PATNO"))
+colnames(df_axis_bio_marker)[2]<-"V1"
+colnames(df_axis_bio_marker)[3]<-"V2"
+df_axis_bio_marker_s<-melt(df_axis_bio_marker,id=c("PATNO","TESTNAME","TESTVALUE"))
+colnames(df_axis_bio_marker_s)[4]<-"Axis"
+ggplot(df_axis_bio_marker_s, aes(x=value, y=log( as.numeric(as.character(df_axis_bio_marker_s$TESTVALUE))),10) )+facet_grid(Axis~TESTNAME)+geom_point(aes(colour=factor(TESTNAME)))+ geom_smooth(method='lm',formula=y~x)+ylab("log10 concentration")
+```
+
+We find a significant relation between Aβ1-42 and phenotypic axes 
+CSF Aβ1-42 was showed to predicts cognitive impairment in de novo PD patients. Phenotypic axis will enable to analysis patients from different cohorts with different clinical assessments.
+
+```{r correlation between V1 and AB,echo=FALSE}
+df_axis_bio_marker$TESTVALUE2<-as.numeric(as.character(df_axis_bio_marker$TESTVALUE))
+x<-list_test[1]
+cor.test(df_axis_bio_marker$V1[df_axis_bio_marker$TESTNAME==x],log(df_axis_bio_marker$TESTVALUE2[df_axis_bio_marker$TESTNAME==x],10))
+```
+
