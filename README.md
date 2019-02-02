@@ -10,7 +10,7 @@ This repository contains data files and RMarkdown documents that can be used for
 
 **Data file:** 
 
-* `PPMI.RData` - PPMI clinical observations (baseline)
+* Clinical data must be downloaded data from the PPMI database in compliance with the PPMI Data Use Agreement. 
 
 **Rmd file:**
 
